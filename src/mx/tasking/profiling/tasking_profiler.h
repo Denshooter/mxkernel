@@ -17,8 +17,8 @@ public:
         std::uint64_t id;
         std::uint32_t type;
         const char* name;
-        std::chrono::high_resolution_clock::time_point start;
-        std::chrono::high_resolution_clock::time_point end;
+        std::chrono::high_resolution_clock::time_point _start;
+        std::chrono::high_resolution_clock::time_point _end;
     };
     
     struct queue_info
@@ -62,14 +62,14 @@ public:
      * @param type 
      * @return std::uint64_t 
      */
-    std::uint64_t startTask(std::uint32_t type, const char* name);
+    std::uint64_t startTask(std::uint16_t cpu_core, std::uint32_t type, const char* name);
     
     /**
      * @brief 
      * 
      * @param id 
      */
-    void endTask(std::uint64_t id);
+    void endTask(std::uint16_t cpu_core, std::uint64_t id);
 
     /**
      * @brief 

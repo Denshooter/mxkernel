@@ -31,8 +31,8 @@ void TaskingProfiler::init(std::uint16_t corenum)
     task_data = new task_info*[total_cores];
     for (std::uint16_t i = 0; i < total_cores; i++)
     {
-        task_data[i] = new task_info[CONFIG_TASKING_ARRAY_LENGTH];
-        for(size_t j = CONFIG_TASKING_ARRAY_LENGTH; j > 0; j--)
+        task_data[i] = new task_info[mx::tasking::config::tasking_array_length()];
+        for(size_t j = mx::tasking::config::tasking_array_length(); j > 0; j--)
         {
             task_data[i][j] = {0, 0,NULL, tinit, tinit};
             __builtin_prefetch(&task_data[i][j-1], 1, 1);
@@ -43,8 +43,8 @@ void TaskingProfiler::init(std::uint16_t corenum)
     queue_data = new queue_info*[total_cores];
     for (std::uint16_t i = 0; i < total_cores; i++)
     {
-        queue_data[i] = new queue_info[CONFIG_TASKING_ARRAY_LENGTH];
-        for(size_t j = CONFIG_TASKING_ARRAY_LENGTH; j > 0; j--)
+        queue_data[i] = new queue_info[mx::tasking::config::tasking_array_length()];
+        for(size_t j = mx::tasking::config::tasking_array_length(); j > 0; j--)
         {
             queue_data[i][j] = {0, tinit};
             __builtin_prefetch(&queue_data[i][j-1], 1, 1);
@@ -57,9 +57,9 @@ void TaskingProfiler::init(std::uint16_t corenum)
     relTime = std::chrono::high_resolution_clock::now();
 }
 
-std::uint64_t TaskingProfiler::startTask(std::uint32_t type, const char* name)
+std::uint64_t TaskingProfiler::startTask(std::uint16_t cpu_core, std::uint32_t type, const char* name)
 {
-    const std::uint16_t cpu_id = system_info.cpu_id();
+    const std::uint16_t cpu_id = cpu_core;
     const std::uint64_t tid = task_id_counter[cpu_id]++;
     task_info& ti = task_data[cpu_id][tid];
     std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
@@ -67,7 +67,7 @@ std::uint64_t TaskingProfiler::startTask(std::uint32_t type, const char* name)
     ti.id = tid;
     ti.type = type;
     ti.name = name;
-    ti.start = start;
+    ti._start = start;
 
     std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
     overhead += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -75,12 +75,12 @@ std::uint64_t TaskingProfiler::startTask(std::uint32_t type, const char* name)
     return ti.id;
 }
 
-void TaskingProfiler::endTask(std::uint64_t id)
+void TaskingProfiler::endTask(std::uint16_t cpu_core, std::uint64_t id)
 {
     std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
 
-    task_info& ti = task_data[system_info.cpu_id()][id];
-    ti.end = std::chrono::high_resolution_clock::now();
+    task_info& ti = task_data[cpu_core][id];
+    ti._end = std::chrono::high_resolution_clock::now();
 
     std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
     overhead += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -107,12 +107,12 @@ void TaskingProfiler::saveProfile()
 
     //get the number of tasks overal
     std::uint64_t tasknum = 0;
-    for (std::uint16_t i = 0; i < corenum; i++)
+    for (std::uint16_t i = 0; i < total_cores; i++)
     {
         tasknum += task_id_counter[i];
     }
     std::cout << "Number of tasks: " << tasknum << std::endl;
-    std::cout << "Overhead-Time per Task: " << overhead/tasknum << "ns" std::endl;
+    std::cout << "Overhead-Time per Task: " << overhead/tasknum << "ns" << std::endl;
 
     bool first = false;
     std::uint64_t firstTime = 0;
@@ -136,98 +136,141 @@ void TaskingProfiler::saveProfile()
     for(std::uint16_t cpu_id = 0; cpu_id < total_cores; cpu_id++)
     {
         //Metadata Events for each core (CPU instead of process as name,...)
-        std::cout << "{\"name\":\"process_name\",\"ph\":\"M\",\"pid\":" << cpu_id << ",\"tid\":" << cpu_id << ",\"args\":{\"name\":\"CPU\"}}," std::endl;
+        std::cout << "{\"name\":\"process_name\",\"ph\":\"M\",\"pid\":" << cpu_id << ",\"tid\":" << cpu_id << ",\"args\":{\"name\":\"CPU\"}}," << std::endl;
         std::cout << "{\"name\":\"process_sort_index\",\"ph\":\"M\",\"pid\":" << cpu_id << ",\"tid\":" << cpu_id << ",\"args\":{\"name\":" << cpu_id << "}}," << std::endl;
         
 
 
-#ifdef CONFIG_TASK_QUEUE_LENGTH
-        taskQueueLength = 0;
-        taskCounter = 0;
-        queueCounter = 0;
+        if (mx::tasking::config::use_task_queue_length()){
+            taskQueueLength = 0;
+            taskCounter = 0;
+            queueCounter = 0;
 
-        //Initial taskQueueLength is zero
-        std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
-        printFloatUS(0);
-        std::cout << ",\"args\":{\"TaskQueueLength\":" << taskQueueLength << "}}," << std::endl;
+            //Initial taskQueueLength is zero
+            std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
+            printFloatUS(0);
+            std::cout << ",\"args\":{\"TaskQueueLength\":" << taskQueueLength << "}}," << std::endl;
 
-        //go through all tasks and queues
-        while(taskCounter<task_id_counter[cpu_id] || queueCounter<queue_id_counter[cpu_id]){
-            //get the next task and queue
-            queue_info& qi = queue_data[cpu_id][queueCounter];
-            task_info& ti = task_data[cpu_id][taskCounter];
+            //go through all tasks and queues
+            while(taskCounter<task_id_counter[cpu_id] || queueCounter<queue_id_counter[cpu_id]){
+                //get the next task and queue
+                queue_info& qi = queue_data[cpu_id][queueCounter];
+                task_info& ti = task_data[cpu_id][taskCounter];
 
-            if(qi.timestamp == tinit){
-                queueCounter++;
+                if(qi.timestamp == tinit){
+                    queueCounter++;
 
-                //increase for the first timestamp
-                //not logging because of very big timestamp
-                if(qi.id == 0){
-                    //taskQueueLength++;
+                    //increase for the first timestamp
+                    //not logging because of very big timestamp
+                    if(qi.id == 0){
+                        //taskQueueLength++;
+                    }
+                    continue;
                 }
-                continue;
-            }
-            if(ti.start == tinit && !first){
-                taskCounter++;
-                //LOG_INFO("TASK SKIP");
-                continue;
-            }
-
-            //get the time from the queue element if existing
-            if(queueCounter < queue_id_counter[cpu_id]){
-                timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(qi.timestamp - relTime).count();
-            }
-
-            //get the time's from the task element if existing
-            if(taskCounter < task_id_counter[cpu_id]){
-                start = std::chrono::duration_cast<std::chrono::nanoseconds>(ti.start - relTime).count();
-                end = std::chrono::duration_cast<std::chrono::nanoseconds>(ti.end - relTime).count();
-                name = abi::__cxa_demangle(ti.name, 0, 0, 0);
-            }
-
-            //get the first time
-            if(!first){
-                first = true;
-                if(timestamp < start)
-                    firstTime = timestamp;
-                else
-                    firstTime = start;
-            }
-            //if the queue element is before the task element, it is an enqueue
-            if(qi.timestamp < ti.start && queueCounter <= queue_id_counter[cpu_id]){
-                queueCounter++;
-                taskQueueLength++;
-                std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
-                if(timestamp - firstTime == 0){
-                    printFloatUS(10);
+                if(ti._start == tinit && !first){
+                    taskCounter++;
+                    //LOG_INFO("TASK SKIP");
+                    continue;
                 }
+
+                //get the time from the queue element if existing
+                if(queueCounter < queue_id_counter[cpu_id]){
+                    timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(qi.timestamp - relTime).count();
+                }
+
+                //get the time's from the task element if existing
+                if(taskCounter < task_id_counter[cpu_id]){
+                    start = std::chrono::duration_cast<std::chrono::nanoseconds>(ti._start - relTime).count();
+                    end = std::chrono::duration_cast<std::chrono::nanoseconds>(ti._end - relTime).count();
+                    name = abi::__cxa_demangle(ti.name, 0, 0, 0);
+                }
+
+                //get the first time
+                if(!first){
+                    first = true;
+                    if(timestamp < start)
+                        firstTime = timestamp;
+                    else
+                        firstTime = start;
+                }
+                //if the queue element is before the task element, it is an enqueue
+                if(qi.timestamp < ti._start && queueCounter <= queue_id_counter[cpu_id]){
+                    queueCounter++;
+                    taskQueueLength++;
+                    std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
+                    if(timestamp - firstTime == 0){
+                        printFloatUS(10);
+                    }
+                    else{
+                        printFloatUS(timestamp-firstTime);
+                    }
+                    std::cout << ",\"args\":{\"TaskQueueLength\":" << taskQueueLength << "}}," << std::endl;
+
+                }
+                //else we print the task itself and a dequeue
                 else{
-                    printFloatUS(timestamp-firstTime);
-                }
-                std::cout << ",\"args\":{\"TaskQueueLength\":" << taskQueueLength << "}}," << std::endl;
+                    taskCounter++;
+                    taskQueueLength--;
 
+                    //taskQueueLength
+                    std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
+                    printFloatUS(start-firstTime);
+                    std::cout << ",\"args\":{\"TaskQueueLength\":" << taskQueueLength << "}}," << std::endl;
+
+                    //if the endtime of the last task is too large (cannot display right)
+                    if(taskCounter == task_id_counter[cpu_id] && ti._end == tinit){
+                        end = start + 1000;
+                    }
+                    //Task itself
+                    std::cout << "{\"pid\":" << cpu_id << ",\"tid\":" << cpu_id << ",\"ts\":" << std::endl;
+                    printFloatUS(start-firstTime);
+                    std::cout << ",\"dur\":";
+                    printFloatUS(end-start);
+                    std::cout << ",\"ph\":\"X\",\"name\":\"" << name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
+
+                    //reset throughput if there is a gap of more than 1us
+                    if (start - lastEndTime > 1000){
+                        std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
+                        printFloatUS(lastEndTime);
+                        std::cout << ",\"args\":{\"TaskThroughput\":";
+                        //Tasks per microsecond is zero
+                        std::cout << 0;
+                        std::cout << "}}," << std::endl;
+                    }
+                    duration = end - start;
+
+                    //Task Throughput
+                    std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
+                    printFloatUS(start-firstTime);
+                    std::cout << ",\"args\":{\"TaskThroughput\":";
+                    //Tasks per microsecond
+                    throughput = 1000/duration;
+                    std::cout << throughput;
+                    std::cout << "}}," << std::endl;
+                    lastEndTime = end;
+                }
             }
-            //else we print the task itself and a dequeue
-            else{
-                taskCounter++;
-                taskQueueLength--;
+        }
+        else{
+            for(std::uint32_t i = 0; i < task_id_counter[cpu_id]; i++){
+                task_info& ti = task_data[cpu_id][i];
 
-                //taskQueueLength
-                std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
-                printFloatUS(start-firstTime);
-                std::cout << ",\"args\":{\"TaskQueueLength\":" << taskQueueLength << "}}," << std::endl;
-
-                //if the endtime of the last task is too large (cannot display right)
-                if(taskCounter == task_id_counter[cpu_id] && ti.end == tinit){
-                    end = start + 1000;
+                // check if task is valid
+                if(ti._end == tinit)
+                {
+                    continue;
                 }
+                start = std::chrono::duration_cast<std::chrono::nanoseconds>(ti._start - relTime).count();
+                end = std::chrono::duration_cast<std::chrono::nanoseconds>(ti._end - relTime).count();
+                name = abi::__cxa_demangle(ti.name, 0, 0, 0);
+
                 //Task itself
-                std::cout << "{\"pid\":" << cpu_id << ",\"tid\":" << cpu_id << ",\"ts\":" << std::endl;
+                std::cout << "{\"pid\":" << cpu_id << ",\"tid\":" << cpu_id << ",\"ts\":";
                 printFloatUS(start-firstTime);
                 std::cout << ",\"dur\":";
                 printFloatUS(end-start);
                 std::cout << ",\"ph\":\"X\",\"name\":\"" << name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
-
+                    
                 //reset throughput if there is a gap of more than 1us
                 if (start - lastEndTime > 1000){
                     std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
@@ -242,64 +285,26 @@ void TaskingProfiler::saveProfile()
                 //Task Throughput
                 std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
                 printFloatUS(start-firstTime);
-                std::cout << ",\"args\":{\"TaskThroughput\":");
+                std::cout << ",\"args\":{\"TaskThroughput\":";
+
                 //Tasks per microsecond
                 throughput = 1000/duration;
+
                 std::cout << throughput;
                 std::cout << "}}," << std::endl;
                 lastEndTime = end;
             }
         }
-#else //CONFIG_TASK_QUEUE_LENGTH
-        for(std::uint32_t i = 0; i < task_id_counter[cpu_id]; i++){
-            task_info& ti = task_data[cpu_id][i];
-
-            // check if task is valid
-            if(ti.end == tinit)
-            {
-                continue;
-            }
-            std::uint64_t start = std::chrono::duration_cast<std::chrono::nanoseconds>(ti.start - relTime).count();
-            std::uint64_t end = std::chrono::duration_cast<std::chrono::nanoseconds>(ti.end - relTime).count();
-            name = abi::__cxa_demangle(ti.name, 0, 0, 0);
-
-            //Task itself
-            std::cout << "{\"pid\":" << cpu_id << ",\"tid\":" << cpu_id << ",\"ts\":";
-            printFloatUS(start-firstTime);
-            std::cout << ",\"dur\":";
-            printFloatUS(end-start);
-            std::cout << ",\"ph\":\"X\",\"name\":\"" << name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
-                
-            //reset throughput if there is a gap of more than 1us
-            if (start - lastEndTime > 1000){
-                std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
-                printFloatUS(lastEndTime);
-                std::cout << ",\"args\":{\"TaskThroughput\":";
-                //Tasks per microsecond is zero
-                std::cout << 0;
-                std::cout << "}}," << std::endl;
-            }
-            duration = end - start;
-
-            //Task Throughput
-            std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
-            printFloatUS(start-firstTime);
-            std::cout << ",\"args\":{\"TaskThroughput\":";
-
-            //Tasks per microsecond
-            throughput = 1000/duration;
-
-            std::cout << throughput;
-            std::cout << "}}," << std::endl;
-            lastEndTime = end;
-        }
-#endif //CONFIG_TASK_QUEUE_LENGTH
     }
             //sample Task (so we dont need to remove the last comma)
             std::cout << "{\"name\":\"sample\",\"ph\":\"P\",\"ts\":0,\"pid\":5,\"tid\":0}";
             std::cout << "]}" << std::endl;;        
 }
 
+
+
+//Code for the TaskingProfiler::printTP function
+/*
 void TaskingProfiler::printTP(std::uint64_t start, std::uint64_t end)
 {
     std::uint64_t tp[total_cores]{0};
@@ -313,8 +318,8 @@ void TaskingProfiler::printTP(std::uint64_t start, std::uint64_t end)
         for(std::uint64_t i = 0; i < task_id_counter[cpu_id]; i++)
         {
             task_info& ti = core_data[i];
-            const std::uint64_t tstart = std::chrono::duration_cast<std::chrono::nanoseconds>(ti.start - relTime).count();
-            const std::uint64_t tend = std::chrono::duration_cast<std::chrono::nanoseconds>(ti.end - relTime).count();            
+            const std::uint64_t tstart = std::chrono::duration_cast<std::chrono::nanoseconds>(ti._start - relTime).count();
+            const std::uint64_t tend = std::chrono::duration_cast<std::chrono::nanoseconds>(ti._end - relTime).count();            
             if(tstart > start && tend < end) {
                 tp[cpu_id]++;
             }
@@ -324,3 +329,4 @@ void TaskingProfiler::printTP(std::uint64_t start, std::uint64_t end)
     }
     LOG_INFO("TP " << "total " << std::accumulate(tp, tp + total_cores, 0));
 }
+*/
