@@ -40,6 +40,9 @@ Scheduler::~Scheduler() noexcept
 
 void Scheduler::start_and_wait()
 {
+
+    std::cout << "START AND WAIT" << std::endl;
+
     // Create threads for worker...
     std::vector<std::thread> worker_threads(this->_core_set.size() +
                                             static_cast<std::uint16_t>(config::memory_reclamation() != config::None));
@@ -80,6 +83,9 @@ void Scheduler::start_and_wait()
 
 void Scheduler::schedule(TaskInterface &task, const std::uint16_t current_channel_id) noexcept
 {
+
+    std::cout << "SCHEDULE" << std::endl;
+
     // Scheduling is based on the annotated resource of the given task.
     if (task.has_resource_annotated())
     {
@@ -159,6 +165,9 @@ void Scheduler::schedule(TaskInterface &task, const std::uint16_t current_channe
 
 void Scheduler::schedule(TaskInterface &task) noexcept
 {
+
+    std::cout << "SCHEDULE" << std::endl;
+
     if (task.has_resource_annotated())
     {
         const auto &annotated_resource = task.annotated_resource();

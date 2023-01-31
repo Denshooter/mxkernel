@@ -10,6 +10,8 @@
 #include <mx/util/core_set.h>
 #include <utility>
 
+#include "profiling/tasking_profiler.h"
+
 namespace mx::tasking {
 /**
  * The runtime is the central access structure to MxTasking.
@@ -82,6 +84,8 @@ public:
         {
             _resource_builder = std::make_unique<resource::Builder>(*_scheduler, *_resource_allocator);
         }
+
+        TaskingProfiler::getInstance().init(core_set.max_core_id());
 
         return true;
     }

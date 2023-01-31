@@ -47,6 +47,7 @@ SET(MX_TASKING_SRC
     src/mx/tasking/worker.cpp
     src/mx/tasking/task.cpp
     src/mx/tasking/profiling/profiling_task.cpp
+    src/mx/tasking/profiling/tasking_profiler.cc
     src/mx/util/core_set.cpp
     src/mx/util/random.cpp
     src/mx/memory/dynamic_size_allocator.cpp
