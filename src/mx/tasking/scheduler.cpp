@@ -40,9 +40,6 @@ Scheduler::~Scheduler() noexcept
 
 void Scheduler::start_and_wait()
 {
-
-    std::cout << "START AND WAIT" << std::endl;
-
     // Create threads for worker...
     std::vector<std::thread> worker_threads(this->_core_set.size() +
                                             static_cast<std::uint16_t>(config::memory_reclamation() != config::None));
@@ -83,9 +80,6 @@ void Scheduler::start_and_wait()
 
 void Scheduler::schedule(TaskInterface &task, const std::uint16_t current_channel_id) noexcept
 {
-
-    std::cout << "SCHEDULE" << std::endl;
-
     // Scheduling is based on the annotated resource of the given task.
     if (task.has_resource_annotated())
     {
@@ -102,6 +96,7 @@ void Scheduler::schedule(TaskInterface &task, const std::uint16_t current_channe
             if constexpr (config::task_statistics())
             {
                 this->_statistic.increment<profiling::Statistic::ScheduledOnChannel>(current_channel_id);
+                    TaskingProfiler::getInstance().enqueue(current_channel_id);
             }
         }
         else
@@ -111,6 +106,7 @@ void Scheduler::schedule(TaskInterface &task, const std::uint16_t current_channe
             if constexpr (config::task_statistics())
             {
                 this->_statistic.increment<profiling::Statistic::ScheduledOffChannel>(current_channel_id);
+                    TaskingProfiler::getInstance().enqueue(current_channel_id);
             }
         }
     }
@@ -136,6 +132,7 @@ void Scheduler::schedule(TaskInterface &task, const std::uint16_t current_channe
             if constexpr (config::task_statistics())
             {
                 this->_statistic.increment<profiling::Statistic::ScheduledOffChannel>(current_channel_id);
+                TaskingProfiler::getInstance().enqueue(current_channel_id);
             }
         }
     }
@@ -154,20 +151,19 @@ void Scheduler::schedule(TaskInterface &task, const std::uint16_t current_channe
         if constexpr (config::task_statistics())
         {
             this->_statistic.increment<profiling::Statistic::ScheduledOnChannel>(current_channel_id);
+            TaskingProfiler::getInstance().enqueue(current_channel_id);
         }
     }
 
     if constexpr (config::task_statistics())
     {
         this->_statistic.increment<profiling::Statistic::Scheduled>(current_channel_id);
+        TaskingProfiler::getInstance().enqueue(current_channel_id);
     }
 }
 
 void Scheduler::schedule(TaskInterface &task) noexcept
 {
-
-    std::cout << "SCHEDULE" << std::endl;
-
     if (task.has_resource_annotated())
     {
         const auto &annotated_resource = task.annotated_resource();
@@ -175,6 +171,7 @@ void Scheduler::schedule(TaskInterface &task) noexcept
         if constexpr (config::task_statistics())
         {
             this->_statistic.increment<profiling::Statistic::ScheduledOffChannel>(annotated_resource.channel_id());
+            TaskingProfiler::getInstance().enqueue(annotated_resource.channel_id());
         }
     }
     else if (task.has_channel_annotated())
@@ -183,6 +180,7 @@ void Scheduler::schedule(TaskInterface &task) noexcept
         if constexpr (config::task_statistics())
         {
             this->_statistic.increment<profiling::Statistic::ScheduledOffChannel>(task.annotated_channel());
+            TaskingProfiler::getInstance().enqueue(task.annotated_channel());
         }
     }
     else if (task.has_node_annotated())

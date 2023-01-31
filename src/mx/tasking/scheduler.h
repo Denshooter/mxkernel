@@ -18,6 +18,8 @@
 #include <mx/util/random.h>
 #include <string>
 
+#include "profiling/tasking_profiler.h"
+
 namespace mx::tasking {
 /**
  * The scheduler is the central (but hidden by the runtime) data structure to spawn
@@ -56,6 +58,7 @@ public:
     {
         _is_running = false;
         this->_profiler.stop();
+        TaskingProfiler::getInstance().saveProfile();
     }
 
     /**

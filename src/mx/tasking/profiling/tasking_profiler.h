@@ -1,3 +1,4 @@
+#pragma once
 #include <chrono>
 #include <atomic>
 #include <mx/tasking/config.h>

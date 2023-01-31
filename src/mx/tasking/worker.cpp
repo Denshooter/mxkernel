@@ -30,7 +30,7 @@ void Worker::execute()
     const auto core_id = system::topology::core_id();
     assert(this->_target_core_id == core_id && "Worker not pinned to correct core.");
     const auto channel_id = this->_channel.id();
-
+    auto task_id = TaskingProfiler::getInstance().startTask(channel_id, 0, "Task");
     while (this->_is_running)
     {
         if constexpr (config::memory_reclamation() == config::UpdateEpochPeriodically)
@@ -102,6 +102,8 @@ void Worker::execute()
                 result = Worker::execute_exclusive_latched(core_id, channel_id, task);
                 break;
             }
+
+            TaskingProfiler::getInstance().endTask(channel_id, task_id);
 
             // The task-chain may be finished at time the
             // task has no successor. Otherwise, we spawn

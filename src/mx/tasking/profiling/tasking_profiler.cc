@@ -25,6 +25,7 @@ void printFloatUS(std::uint64_t ns)
 
 void TaskingProfiler::init(std::uint16_t corenum)
 {
+    corenum++;
     this->total_cores = corenum;
 
     //create an array of pointers to task_info structs
@@ -182,7 +183,7 @@ void TaskingProfiler::saveProfile()
                 if(taskCounter < task_id_counter[cpu_id]){
                     start = std::chrono::duration_cast<std::chrono::nanoseconds>(ti._start - relTime).count();
                     end = std::chrono::duration_cast<std::chrono::nanoseconds>(ti._end - relTime).count();
-                    name = abi::__cxa_demangle(ti.name, 0, 0, 0);
+                    //name = abi::__cxa_demangle(ti.name, 0, 0, 0);
                 }
 
                 //get the first time
@@ -222,11 +223,11 @@ void TaskingProfiler::saveProfile()
                         end = start + 1000;
                     }
                     //Task itself
-                    std::cout << "{\"pid\":" << cpu_id << ",\"tid\":" << cpu_id << ",\"ts\":" << std::endl;
+                    std::cout << "{\"pid\":" << cpu_id << ",\"tid\":" << cpu_id << ",\"ts\":";
                     printFloatUS(start-firstTime);
                     std::cout << ",\"dur\":";
                     printFloatUS(end-start);
-                    std::cout << ",\"ph\":\"X\",\"name\":\"" << name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
+                    std::cout << ",\"ph\":\"X\",\"name\":\"" << ti.name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
 
                     //reset throughput if there is a gap of more than 1us
                     if (start - lastEndTime > 1000){
@@ -269,7 +270,7 @@ void TaskingProfiler::saveProfile()
                 printFloatUS(start-firstTime);
                 std::cout << ",\"dur\":";
                 printFloatUS(end-start);
-                std::cout << ",\"ph\":\"X\",\"name\":\"" << name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
+                std::cout << ",\"ph\":\"X\",\"name\":\"" << ti.name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
                     
                 //reset throughput if there is a gap of more than 1us
                 if (start - lastEndTime > 1000){
