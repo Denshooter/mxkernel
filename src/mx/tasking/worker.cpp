@@ -30,7 +30,6 @@ void Worker::execute()
     const auto core_id = system::topology::core_id();
     assert(this->_target_core_id == core_id && "Worker not pinned to correct core.");
     const auto channel_id = this->_channel.id();
-    auto task_id = TaskingProfiler::getInstance().startTask(channel_id, 0, "Task");
     while (this->_is_running)
     {
         if constexpr (config::memory_reclamation() == config::UpdateEpochPeriodically)
@@ -83,27 +82,36 @@ void Worker::execute()
             // Based on the annotated resource and its synchronization
             // primitive, we choose the fitting execution context.
             auto result = TaskResult{};
+            auto task_id_profiler = 0;
             switch (Worker::synchronization_primitive(task))
             {
             case synchronization::primitive::ScheduleWriter:
+                task_id_profiler = TaskingProfiler::getInstance().startTask(core_id, 0, "execute_optimistic()");
                 result = this->execute_optimistic(core_id, channel_id, task);
+                TaskingProfiler::getInstance().endTask(channel_id, task_id_profiler);
                 break;
             case synchronization::primitive::OLFIT:
+                task_id_profiler = TaskingProfiler::getInstance().startTask(core_id, 0, "execute_olfit()");
                 result = this->execute_olfit(core_id, channel_id, task);
+                TaskingProfiler::getInstance().endTask(channel_id, task_id_profiler);
                 break;
             case synchronization::primitive::ScheduleAll:
             case synchronization::primitive::None:
+                task_id_profiler = TaskingProfiler::getInstance().startTask(core_id, 0, "execute()");
                 result = task->execute(core_id, channel_id);
+                TaskingProfiler::getInstance().endTask(channel_id, task_id_profiler);
                 break;
             case synchronization::primitive::ReaderWriterLatch:
+                task_id_profiler = TaskingProfiler::getInstance().startTask(core_id, 0, "execute_reader_writer_latched()");
                 result = Worker::execute_reader_writer_latched(core_id, channel_id, task);
+                TaskingProfiler::getInstance().endTask(channel_id, task_id_profiler);
                 break;
             case synchronization::primitive::ExclusiveLatch:
+                task_id_profiler = TaskingProfiler::getInstance().startTask(core_id, 0, "execute_exclusive_latched()");
                 result = Worker::execute_exclusive_latched(core_id, channel_id, task);
+                TaskingProfiler::getInstance().endTask(channel_id, task_id_profiler);
                 break;
             }
-
-            TaskingProfiler::getInstance().endTask(channel_id, task_id);
 
             // The task-chain may be finished at time the
             // task has no successor. Otherwise, we spawn

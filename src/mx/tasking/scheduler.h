@@ -58,7 +58,6 @@ public:
     {
         _is_running = false;
         this->_profiler.stop();
-        TaskingProfiler::getInstance().saveProfile();
     }
 
     /**

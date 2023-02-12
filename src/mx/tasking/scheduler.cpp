@@ -31,6 +31,7 @@ Scheduler::Scheduler(const mx::util::core_set &core_set, const std::uint16_t pre
 
 Scheduler::~Scheduler() noexcept
 {
+    TaskingProfiler::getInstance().saveProfile();
     for (auto *worker : this->_worker)
     {
         worker->~Worker();
@@ -124,6 +125,7 @@ void Scheduler::schedule(TaskInterface &task, const std::uint16_t current_channe
             if constexpr (config::task_statistics())
             {
                 this->_statistic.increment<profiling::Statistic::ScheduledOnChannel>(current_channel_id);
+                TaskingProfiler::getInstance().enqueue(current_channel_id);
             }
         }
         else
@@ -202,6 +204,7 @@ void Scheduler::reset() noexcept
 
 void Scheduler::profile(const std::string &output_file)
 {
+    TaskingProfiler::getInstance().saveProfile();
     this->_profiler.profile(output_file);
     for (auto i = 0U; i < this->_count_channels; ++i)
     {
