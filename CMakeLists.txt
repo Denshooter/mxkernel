@@ -108,3 +108,5 @@ endif()
 # Custom targets
 add_custom_target(ycsb-a ${CMAKE_SOURCE_DIR}/scripts/generate_ycsb a randint)
 add_custom_target(ycsb-c ${CMAKE_SOURCE_DIR}/scripts/generate_ycsb c randint)
+add_custom_target(ycsb-t ${CMAKE_SOURCE_DIR}/scripts/generate_ycsb t randint)
+add_custom_target(ycsb-b ${CMAKE_SOURCE_DIR}/scripts/generate_ycsb b randint)
