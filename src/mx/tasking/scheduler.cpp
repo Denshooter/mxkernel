@@ -202,7 +202,6 @@ void Scheduler::reset() noexcept
 
 void Scheduler::profile(const std::string &output_file)
 {
-    TaskingProfiler::getInstance().saveProfile();
     this->_profiler.profile(output_file);
     for (auto i = 0U; i < this->_count_channels; ++i)
     {
