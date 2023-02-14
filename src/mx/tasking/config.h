@@ -30,7 +30,7 @@ public:
     // memory is unsafe.
     static constexpr auto memory_reclamation() { return memory_reclamation_scheme::UpdateEpochPeriodically; }
 
-    static constexpr auto tasking_array_length() { return 5120000; }
+    static constexpr auto tasking_array_length() { return 8000000; }
 
     static constexpr auto use_task_queue_length() { return true; }
 };
