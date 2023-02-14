@@ -145,7 +145,7 @@ void TaskingProfiler::saveProfile()
         if (mx::tasking::config::use_task_queue_length()){
             taskQueueLength = 0;
             taskCounter = 0;
-            queueCounter = 0;
+            queueCounter = 1;
 
             //Initial taskQueueLength is zero
             std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
@@ -157,22 +157,6 @@ void TaskingProfiler::saveProfile()
                 //get the next task and queue
                 queue_info& qi = queue_data[cpu_id][queueCounter];
                 task_info& ti = task_data[cpu_id][taskCounter];
-
-                if(qi.timestamp == tinit){
-                    queueCounter++;
-
-                    //increase for the first timestamp
-                    //not logging because of very big timestamp
-                    if(qi.id == 0){
-                        //taskQueueLength++;
-                    }
-                    continue;
-                }
-                if(ti._start == tinit && !first){
-                    taskCounter++;
-                    //LOG_INFO("TASK SKIP");
-                    continue;
-                }
 
                 //get the time from the queue element if existing
                 if(queueCounter < queue_id_counter[cpu_id]){
@@ -189,10 +173,12 @@ void TaskingProfiler::saveProfile()
                 //get the first time
                 if(!first){
                     first = true;
-                    if(timestamp < start)
+                    if(timestamp < start){
                         firstTime = timestamp;
-                    else
+                    }
+                    else{
                         firstTime = start;
+                    }
                 }
                 //if the queue element is before the task element, it is an enqueue
                 if(qi.timestamp < ti._start && queueCounter <= queue_id_counter[cpu_id]){
