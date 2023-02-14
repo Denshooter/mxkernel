@@ -25,6 +25,8 @@ void printFloatUS(std::uint64_t ns)
 
 void TaskingProfiler::init(std::uint16_t corenum)
 {
+    relTime = std::chrono::high_resolution_clock::now();
+
     corenum++;
     this->total_cores = corenum;
 
@@ -54,8 +56,6 @@ void TaskingProfiler::init(std::uint16_t corenum)
 
     task_id_counter = new std::uint64_t[total_cores]{0};
     queue_id_counter = new std::uint64_t[total_cores]{0};
-
-    relTime = std::chrono::high_resolution_clock::now();
 }
 
 std::uint64_t TaskingProfiler::startTask(std::uint16_t cpu_core, std::uint32_t type, const char* name)
@@ -296,6 +296,7 @@ void TaskingProfiler::saveProfile()
                 lastEndTime = end;
             }
         }
+        lastEndTime = 0;
     }
             //sample Task (so we dont need to remove the last comma)
             std::cout << "{\"name\":\"sample\",\"ph\":\"P\",\"ts\":0,\"pid\":5,\"tid\":0}";
