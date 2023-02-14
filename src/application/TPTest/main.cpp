@@ -1,7 +1,7 @@
 #include <iostream>
 #include <mx/tasking/runtime.h>
 
-static const uint64_t CORES = 4;
+static const uint64_t CORES = 16;
 static const uint64_t NUM = 8;
 static const uint64_t COUNT = 4;
 
