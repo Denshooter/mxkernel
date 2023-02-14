@@ -85,6 +85,9 @@ target_link_libraries(hashjoin_benchmark pthread numa atomic mxtasking mxbenchma
 add_executable(hello_world src/application/hello_world/main.cpp)
 target_link_libraries(hello_world pthread numa atomic mxtasking mxbenchmarking)
 
+add_executable(TPTest src/application/TPTest/main.cpp)
+target_link_libraries(TPTest pthread numa atomic mxtasking mxbenchmarking)
+
 # Add tests
 if (GTEST)
     set(TESTS
