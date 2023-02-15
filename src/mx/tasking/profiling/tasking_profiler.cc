@@ -167,7 +167,7 @@ void TaskingProfiler::saveProfile()
                 if(taskCounter < task_id_counter[cpu_id]){
                     start = std::chrono::duration_cast<std::chrono::nanoseconds>(ti._start - relTime).count();
                     end = std::chrono::duration_cast<std::chrono::nanoseconds>(ti._end - relTime).count();
-                    //name = abi::__cxa_demangle(ti.name, 0, 0, 0);
+                    name = abi::__cxa_demangle(ti.name, 0, 0, 0);
                 }
 
                 //get the first time
@@ -213,7 +213,7 @@ void TaskingProfiler::saveProfile()
                     printFloatUS(start-firstTime);
                     std::cout << ",\"dur\":";
                     printFloatUS(end-start);
-                    std::cout << ",\"ph\":\"X\",\"name\":\"" << ti.name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
+                    std::cout << ",\"ph\":\"X\",\"name\":\"" << name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
 
                     //reset throughput if there is a gap of more than 1us
                     if (start - lastEndTime > 1000){
@@ -256,7 +256,7 @@ void TaskingProfiler::saveProfile()
                 printFloatUS(start-firstTime);
                 std::cout << ",\"dur\":";
                 printFloatUS(end-start);
-                std::cout << ",\"ph\":\"X\",\"name\":\"" << ti.name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
+                std::cout << ",\"ph\":\"X\",\"name\":\"" << name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
                     
                 //reset throughput if there is a gap of more than 1us
                 if (start - lastEndTime > 1000){
