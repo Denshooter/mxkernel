@@ -85,8 +85,9 @@ public:
             _resource_builder = std::make_unique<resource::Builder>(*_scheduler, *_resource_allocator);
         }
 
-        TaskingProfiler::getInstance().init(core_set.max_core_id());
-
+        if constexpr (config::use_tasking_profiler()){
+            TaskingProfiler::getInstance().init(core_set.max_core_id());
+        }
         return true;
     }
 

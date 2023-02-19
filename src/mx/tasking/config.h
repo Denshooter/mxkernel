@@ -33,5 +33,7 @@ public:
     static constexpr auto tasking_array_length() { return 8000000; }
 
     static constexpr auto use_task_queue_length() { return true; }
+
+    static constexpr auto use_tasking_profiler() { return true; }
 };
 } // namespace mx::tasking
