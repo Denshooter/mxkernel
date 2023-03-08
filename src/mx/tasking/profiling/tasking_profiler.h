@@ -42,7 +42,7 @@ private:
     std::uint16_t total_cores;
 
     // profile data inside a multidimensional array
-    task_info** task_data;
+    void** task_data;
     queue_info** queue_data;
 
     // id counters for every core

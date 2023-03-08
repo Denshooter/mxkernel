@@ -4,6 +4,7 @@
 #include <chrono>
 #include <numeric>
 #include <cxxabi.h>
+#include <numa.h>
 
 constexpr std::chrono::time_point<std::chrono::high_resolution_clock> TaskingProfiler::tinit;
 
@@ -31,14 +32,15 @@ void TaskingProfiler::init(std::uint16_t corenum)
     this->total_cores = corenum;
 
     //create an array of pointers to task_info structs
-    task_data = new task_info*[total_cores];
-    for (std::uint16_t i = 0; i < total_cores; i++)
+    task_data = new void*[total_cores];
+    for (std::uint8_t i = 0; i < total_cores; i++)
     {
-        task_data[i] = new task_info[mx::tasking::config::tasking_array_length()];
+        task_data[i] = numa_alloc_onnode(sizeof(task_info) * mx::tasking::config::tasking_array_length(), 0);
+        //task_data[i] = new task_info[mx::tasking::config::tasking_array_length()];
         for(size_t j = mx::tasking::config::tasking_array_length(); j > 0; j--)
         {
-            task_data[i][j] = {0, 0,NULL, tinit, tinit};
-            __builtin_prefetch(&task_data[i][j-1], 1, 1);
+            task_info ti = {0, 0, NULL, tinit, tinit};
+            (static_cast<task_info*>(task_data[i]))[j] = ti;
         }
     }
 
@@ -63,7 +65,7 @@ std::uint64_t TaskingProfiler::startTask(std::uint16_t cpu_core, std::uint32_t t
     std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
     const std::uint16_t cpu_id = cpu_core;
     const std::uint64_t tid = task_id_counter[cpu_id]++;
-    task_info& ti = task_data[cpu_id][tid];
+    task_info& ti = static_cast<task_info*>(task_data[cpu_id])[tid];
 
     ti.id = tid;
     ti.type = type;
@@ -80,7 +82,7 @@ void TaskingProfiler::endTask(std::uint16_t cpu_core, std::uint64_t id)
 {
     std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
 
-    task_info& ti = task_data[cpu_core][id];
+    task_info& ti = static_cast<task_info*>(task_data[cpu_core])[id];
     ti._end = std::chrono::high_resolution_clock::now();
 
     std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
@@ -92,7 +94,7 @@ void TaskingProfiler::enqueue(std::uint16_t corenum){
     const std::uint64_t qid = __atomic_add_fetch(&queue_id_counter[corenum], 1, __ATOMIC_SEQ_CST);
     
     //useless time consuming code to make program runnable
-    if(qid % 20 == 0){
+    if(qid % 10 == 0){
         std::cout << std::flush;
     }
     queue_info& qi = queue_data[corenum][qid];
@@ -160,7 +162,7 @@ void TaskingProfiler::saveProfile()
             while(taskCounter<task_id_counter[cpu_id] || queueCounter<queue_id_counter[cpu_id]){
                 //get the next task and queue
                 queue_info& qi = queue_data[cpu_id][queueCounter];
-                task_info& ti = task_data[cpu_id][taskCounter];
+                task_info& ti = static_cast<task_info*>(task_data[cpu_id])[taskCounter];
 
                 //get the time from the queue element if existing
                 if(queueCounter < queue_id_counter[cpu_id]){
@@ -220,7 +222,7 @@ void TaskingProfiler::saveProfile()
                     std::cout << ",\"ph\":\"X\",\"name\":\"" << name << "\",\"args\":{\"type\":" << ti.type << "}}," << std::endl;
 
                     //reset throughput if there is a gap of more than 1us
-                    if (start - lastEndTime > 1000){
+                    if (start - lastEndTime > 1000 && lastEndTime != 0){
                         std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
                         printFloatUS(lastEndTime - firstTime);
                         std::cout << ",\"args\":{\"TaskThroughput\":";
@@ -244,7 +246,7 @@ void TaskingProfiler::saveProfile()
         }
         else{
             for(std::uint32_t i = 0; i < task_id_counter[cpu_id]; i++){
-                task_info& ti = task_data[cpu_id][i];
+                task_info& ti = static_cast<task_info*>(task_data[cpu_id])[i];
 
                 // check if task is valid
                 if(ti._end == tinit)
