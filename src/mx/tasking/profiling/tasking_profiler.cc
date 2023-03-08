@@ -60,10 +60,10 @@ void TaskingProfiler::init(std::uint16_t corenum)
 
 std::uint64_t TaskingProfiler::startTask(std::uint16_t cpu_core, std::uint32_t type, const char* name)
 {
+    std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
     const std::uint16_t cpu_id = cpu_core;
     const std::uint64_t tid = task_id_counter[cpu_id]++;
     task_info& ti = task_data[cpu_id][tid];
-    std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
 
     ti.id = tid;
     ti.type = type;
@@ -89,8 +89,12 @@ void TaskingProfiler::endTask(std::uint16_t cpu_core, std::uint64_t id)
 
 void TaskingProfiler::enqueue(std::uint16_t corenum){
     std::chrono::time_point<std::chrono::high_resolution_clock> timestamp = std::chrono::high_resolution_clock::now();
-
     const std::uint64_t qid = __atomic_add_fetch(&queue_id_counter[corenum], 1, __ATOMIC_SEQ_CST);
+    
+    //useless time consuming code to make program runnable
+    if(qid % 20 == 0){
+        std::cout << std::flush;
+    }
     queue_info& qi = queue_data[corenum][qid];
     qi.id = qid;
     qi.timestamp = timestamp;
@@ -218,7 +222,7 @@ void TaskingProfiler::saveProfile()
                     //reset throughput if there is a gap of more than 1us
                     if (start - lastEndTime > 1000){
                         std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
-                        printFloatUS(lastEndTime);
+                        printFloatUS(lastEndTime - firstTime);
                         std::cout << ",\"args\":{\"TaskThroughput\":";
                         //Tasks per microsecond is zero
                         std::cout << 0;
@@ -261,7 +265,7 @@ void TaskingProfiler::saveProfile()
                 //reset throughput if there is a gap of more than 1us
                 if (start - lastEndTime > 1000){
                     std::cout << "{\"pid\":" << cpu_id << ",\"name\":\"CPU" << cpu_id <<  "\",\"ph\":\"C\",\"ts\":";
-                    printFloatUS(lastEndTime);
+                    printFloatUS(lastEndTime-firstTime);
                     std::cout << ",\"args\":{\"TaskThroughput\":";
                     //Tasks per microsecond is zero
                     std::cout << 0;
