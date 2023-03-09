@@ -12,7 +12,7 @@ using namespace mx::tasking;
 Scheduler::Scheduler(const mx::util::core_set &core_set, const std::uint16_t prefetch_distance,
                      memory::dynamic::Allocator &resource_allocator) noexcept
     : _core_set(core_set), _count_channels(core_set.size()), _worker({}), _channel_numa_node_map({0U}),
-      _epoch_manager(core_set.size(), resource_allocator, _is_running), _statistic(_count_channels)
+      _epoch_manager(core_set.size(), resource_allocator, _is_running, _is_interrupted), _statistic(_count_channels)
 {
     this->_worker.fill(nullptr);
     this->_channel_numa_node_map.fill(0U);

@@ -56,6 +56,7 @@ public:
      */
     void interrupt() noexcept
     {
+        _is_interrupted = true;
         _is_running = false;
         this->_profiler.stop();
     }
@@ -183,6 +184,10 @@ private:
     // Flag for the worker threads. If false, the worker threads will stop.
     // This is atomic for hardware that does not guarantee atomic reads/writes of booleans.
     alignas(64) util::maybe_atomic<bool> _is_running{false};
+
+    // Flag for the worker threads. If true, the was interrupted.
+    // Used to signal the epoch manager to skip waiting in enter_epoch_periodically().
+    alignas(64) util::maybe_atomic<bool> _is_interrupted{false};
 
     // All initialized workers.
     alignas(64) std::array<Worker *, config::max_cores()> _worker{nullptr};
