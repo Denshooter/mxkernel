@@ -30,12 +30,13 @@ void TaskingProfiler::init(std::uint16_t corenum)
 
     corenum++;
     this->total_cores = corenum;
-
+    uint16_t cpu_numa_node = 0;
     //create an array of pointers to task_info structs
     task_data = new void*[total_cores];
     for (std::uint8_t i = 0; i < total_cores; i++)
     {
-        task_data[i] = numa_alloc_onnode(sizeof(task_info) * mx::tasking::config::tasking_array_length(), 0);
+        cpu_numa_node = numa_node_of_cpu(i);
+        task_data[i] = numa_alloc_onnode(sizeof(task_info) * mx::tasking::config::tasking_array_length(), cpu_numa_node);
         //task_data[i] = new task_info[mx::tasking::config::tasking_array_length()];
         for(size_t j = mx::tasking::config::tasking_array_length(); j > 0; j--)
         {
