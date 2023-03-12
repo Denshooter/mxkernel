@@ -32,16 +32,14 @@ void TaskingProfiler::init(std::uint16_t corenum)
     this->total_cores = corenum;
     uint16_t cpu_numa_node = 0;
     //create an array of pointers to task_info structs
-    task_data = new void*[total_cores];
+    task_data = new task_info*[total_cores];
     for (std::uint8_t i = 0; i < total_cores; i++)
     {
         cpu_numa_node = numa_node_of_cpu(i);
-        task_data[i] = numa_alloc_onnode(sizeof(task_info) * mx::tasking::config::tasking_array_length(), cpu_numa_node);
-        //task_data[i] = new task_info[mx::tasking::config::tasking_array_length()];
+        task_data[i] = static_cast<task_info*>(numa_alloc_onnode(sizeof(task_info) * mx::tasking::config::tasking_array_length(), cpu_numa_node));
         for(size_t j = mx::tasking::config::tasking_array_length(); j > 0; j--)
         {
-            task_info ti = {0, 0, NULL, tinit, tinit};
-            (static_cast<task_info*>(task_data[i]))[j] = ti;
+            task_data[i][j] = {0, 0, NULL, tinit, tinit};
         }
     }
 
@@ -49,11 +47,11 @@ void TaskingProfiler::init(std::uint16_t corenum)
     queue_data = new queue_info*[total_cores];
     for (std::uint16_t i = 0; i < total_cores; i++)
     {
-        queue_data[i] = new queue_info[mx::tasking::config::tasking_array_length()];
+        cpu_numa_node = numa_node_of_cpu(i);
+        queue_data[i] = static_cast<queue_info*>(numa_alloc_onnode(sizeof(queue_info) * mx::tasking::config::tasking_array_length(), cpu_numa_node));
         for(size_t j = mx::tasking::config::tasking_array_length(); j > 0; j--)
         {
             queue_data[i][j] = {0, tinit};
-            __builtin_prefetch(&queue_data[i][j-1], 1, 1);
         }
     }
 
