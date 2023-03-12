@@ -8,8 +8,8 @@ using namespace mx::memory::reclamation;
 
 void EpochManager::enter_epoch_periodically()
 {
-    // Wait until the scheduler starts the system.
-    while (this->_is_running == false)
+    // Wait until the scheduler starts the system or skip if the system was interrupted.
+    while (this->_is_running == false && this->_is_interrupted == false)
     {
         system::builtin::pause();
     }

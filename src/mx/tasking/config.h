@@ -29,5 +29,11 @@ public:
     // synchronization by epoch-based reclamation. Otherwise, freeing
     // memory is unsafe.
     static constexpr auto memory_reclamation() { return memory_reclamation_scheme::UpdateEpochPeriodically; }
+
+    static constexpr auto tasking_array_length() { return 9000000; }
+
+    static constexpr auto use_task_queue_length() { return true; }
+
+    static constexpr auto use_tasking_profiler() { return true; }
 };
 } // namespace mx::tasking

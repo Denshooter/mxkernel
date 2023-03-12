@@ -47,6 +47,7 @@ SET(MX_TASKING_SRC
     src/mx/tasking/worker.cpp
     src/mx/tasking/task.cpp
     src/mx/tasking/profiling/profiling_task.cpp
+    src/mx/tasking/profiling/tasking_profiler.cc
     src/mx/util/core_set.cpp
     src/mx/util/random.cpp
     src/mx/memory/dynamic_size_allocator.cpp
@@ -84,6 +85,9 @@ target_link_libraries(hashjoin_benchmark pthread numa atomic mxtasking mxbenchma
 add_executable(hello_world src/application/hello_world/main.cpp)
 target_link_libraries(hello_world pthread numa atomic mxtasking mxbenchmarking)
 
+add_executable(TPTest src/application/TPTest/main.cpp)
+target_link_libraries(TPTest pthread numa atomic mxtasking mxbenchmarking)
+
 # Add tests
 if (GTEST)
     set(TESTS
@@ -107,3 +111,5 @@ endif()
 # Custom targets
 add_custom_target(ycsb-a ${CMAKE_SOURCE_DIR}/scripts/generate_ycsb a randint)
 add_custom_target(ycsb-c ${CMAKE_SOURCE_DIR}/scripts/generate_ycsb c randint)
+add_custom_target(ycsb-t ${CMAKE_SOURCE_DIR}/scripts/generate_ycsb t randint)
+add_custom_target(ycsb-b ${CMAKE_SOURCE_DIR}/scripts/generate_ycsb b randint)
