@@ -2,7 +2,7 @@
 #include <mx/tasking/runtime.h>
 
 static const uint64_t CORES = 16;
-static const uint64_t NUM = 8;
+static const uint64_t NUM = 10;
 static const uint64_t COUNT = 4;
 
 class DummyTask : public mx::tasking::TaskInterface
@@ -16,7 +16,8 @@ public:
 
     mx::tasking::TaskResult execute(const std::uint16_t core_id, const std::uint16_t /*channel_id*/) override
     {
-        std::cout << "DummyTask cpuid: " << core_id << " num " << (num + 1) << " / " << NUM << std::endl;
+        (void) core_id;
+        //std::cout << "DummyTask cpuid: " << core_id << " num " << (num + 1) << " / " << NUM << std::endl;
         return mx::tasking::TaskResult::make_remove();
     }
 };
@@ -64,7 +65,7 @@ public:
         create->setCnt(cnt + 1);
         mx::tasking::runtime::spawn(*create);
 
-        std::cout << "CreateTask cpuid: " << core_id << " cnt " << (cnt + 1) << " / " << COUNT << std::endl;
+        //std::cout << "CreateTask cpuid: " << core_id << " cnt " << (cnt + 1) << " / " << COUNT << std::endl;
         return mx::tasking::TaskResult::make_remove();
     }
 };

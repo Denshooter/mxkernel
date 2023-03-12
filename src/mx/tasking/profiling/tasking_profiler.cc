@@ -30,9 +30,10 @@ void TaskingProfiler::init(std::uint16_t corenum)
 
     corenum++;
     this->total_cores = corenum;
-    uint16_t cpu_numa_node = 0;
+    
     //create an array of pointers to task_info structs
     task_data = new task_info*[total_cores];
+    
     for (std::uint8_t i = 0; i < total_cores; i++)
     {
         cpu_numa_node = numa_node_of_cpu(i);
@@ -91,11 +92,7 @@ void TaskingProfiler::endTask(std::uint16_t cpu_core, std::uint64_t id)
 void TaskingProfiler::enqueue(std::uint16_t corenum){
     std::chrono::time_point<std::chrono::high_resolution_clock> timestamp = std::chrono::high_resolution_clock::now();
     const std::uint64_t qid = __atomic_add_fetch(&queue_id_counter[corenum], 1, __ATOMIC_SEQ_CST);
-    
-    //useless time consuming code to make program runnable
-    if(qid % 10 == 0){
-        std::cout << std::flush;
-    }
+
     queue_info& qi = queue_data[corenum][qid];
     qi.id = qid;
     qi.timestamp = timestamp;

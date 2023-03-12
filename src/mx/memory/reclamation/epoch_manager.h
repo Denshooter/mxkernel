@@ -59,8 +59,8 @@ class EpochManager
 {
 public:
     EpochManager(const std::uint16_t count_channels, dynamic::Allocator &allocator,
-                 util::maybe_atomic<bool> &is_running) noexcept
-        : _count_channels(count_channels), _is_running(is_running), _allocator(allocator)
+                 util::maybe_atomic<bool> &is_running, util::maybe_atomic<bool> &is_interrupted) noexcept
+        : _count_channels(count_channels), _is_running(is_running), _is_interrupted(is_interrupted), _allocator(allocator)
     {
     }
 
@@ -141,6 +141,9 @@ private:
 
     // Flag of the scheduler indicating the state of the system.
     util::maybe_atomic<bool> &_is_running;
+    
+    // Flag of the scheduler indicating if the system was interrupted.
+    util::maybe_atomic<bool> &_is_interrupted;
 
     // Allocator to free collected resources.
     dynamic::Allocator &_allocator;
