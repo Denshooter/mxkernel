@@ -30,7 +30,8 @@ void TaskingProfiler::init(std::uint16_t corenum)
 
     corenum++;
     this->total_cores = corenum;
-    
+    uint16_t cpu_numa_node = 0;
+
     //create an array of pointers to task_info structs
     task_data = new task_info*[total_cores];
     
