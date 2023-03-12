@@ -64,7 +64,7 @@ std::uint64_t TaskingProfiler::startTask(std::uint16_t cpu_core, std::uint32_t t
     std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
     const std::uint16_t cpu_id = cpu_core;
     const std::uint64_t tid = task_id_counter[cpu_id]++;
-    task_info& ti = static_cast<task_info*>(task_data[cpu_id])[tid];
+    task_info& ti = task_data[cpu_id][tid];
 
     ti.id = tid;
     ti.type = type;
@@ -81,7 +81,7 @@ void TaskingProfiler::endTask(std::uint16_t cpu_core, std::uint64_t id)
 {
     std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
 
-    task_info& ti = static_cast<task_info*>(task_data[cpu_core])[id];
+    task_info& ti = task_data[cpu_core][id];
     ti._end = std::chrono::high_resolution_clock::now();
 
     std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
@@ -161,7 +161,7 @@ void TaskingProfiler::saveProfile()
             while(taskCounter<task_id_counter[cpu_id] || queueCounter<queue_id_counter[cpu_id]){
                 //get the next task and queue
                 queue_info& qi = queue_data[cpu_id][queueCounter];
-                task_info& ti = static_cast<task_info*>(task_data[cpu_id])[taskCounter];
+                task_info& ti = task_data[cpu_id][taskCounter];
 
                 //get the time from the queue element if existing
                 if(queueCounter < queue_id_counter[cpu_id]){
@@ -245,7 +245,7 @@ void TaskingProfiler::saveProfile()
         }
         else{
             for(std::uint32_t i = 0; i < task_id_counter[cpu_id]; i++){
-                task_info& ti = static_cast<task_info*>(task_data[cpu_id])[i];
+                task_info& ti = task_data[cpu_id][i];
 
                 // check if task is valid
                 if(ti._end == tinit)
