@@ -5,8 +5,23 @@
 #include <numeric>
 #include <cxxabi.h>
 #include <numa.h>
+#include <mx/tasking/runtime.h>
 
 constexpr std::chrono::time_point<std::chrono::high_resolution_clock> TaskingProfiler::tinit;
+
+class PrefetchTask : public mx::tasking::TaskInterface
+{
+public:
+    PrefetchTask() {}
+    ~PrefetchTask() override = default;
+
+    mx::tasking::TaskResult execute(const std::uint16_t core_id, const std::uint16_t /*channel_id*/) override
+    {
+        std::cout << "PrefetchTask cpuid: " << core_id << std::endl;
+
+        return mx::tasking::TaskResult::make_remove();
+    }
+};
 
 void printFloatUS(std::uint64_t ns)
 {
@@ -31,6 +46,15 @@ void TaskingProfiler::init(std::uint16_t corenum)
     corenum++;
     this->total_cores = corenum;
     uint16_t cpu_numa_node = 0;
+
+    {
+        std::cout << "Testing" << std::endl;
+        // enqueue prefetch task
+        auto *prefetch = mx::tasking::runtime::new_task<PrefetchTask>(corenum);
+        prefetch->annotate(corenum);
+
+        mx::tasking::runtime::spawn(*prefetch);
+    }
 
     //create an array of pointers to task_info structs
     task_data = new task_info*[total_cores];
