@@ -17,7 +17,20 @@ public:
 
     mx::tasking::TaskResult execute(const std::uint16_t core_id, const std::uint16_t /*channel_id*/) override
     {
-        std::cout << "PrefetchTask cpuid: " << core_id << std::endl;
+        TaskingProfiler::task_info** task_data = TaskingProfiler::getInstance().getTaskData();
+        TaskingProfiler::queue_info** queue_data = TaskingProfiler::getInstance().getQueueData();
+        std::chrono::time_point<std::chrono::high_resolution_clock> tinit = TaskingProfiler::getInstance().getTinit();
+        for(size_t j = mx::tasking::config::tasking_array_length(); j > 0; j--)
+        {
+            task_data[core_id][j] = {0, 0, NULL, tinit, tinit};
+            __builtin_prefetch(&task_data[core_id][j], 1, 3);
+        }
+        
+        for(size_t j = mx::tasking::config::tasking_array_length(); j > 0; j--)
+        {
+            queue_data[core_id][j] = {0, tinit};
+            __builtin_prefetch(&queue_data[core_id][j], 1, 3);
+        }
 
         return mx::tasking::TaskResult::make_remove();
     }
@@ -39,6 +52,20 @@ void printFloatUS(std::uint64_t ns)
     std::cout << front << '.' << strRemainder;
 }
 
+void TaskingProfiler::prefetch(){
+    std::cout << "Prefetching" << std::endl;
+
+    for (std::uint8_t i = 0; i < total_cores; i++){
+        // enqueue prefetch task
+        auto *prefetch = mx::tasking::runtime::new_task<PrefetchTask>(i);
+        prefetch->annotate(i);
+
+        mx::tasking::runtime::spawn(*prefetch);
+    }
+    std::cout << "Prefetching done" << std::endl;
+
+}
+
 void TaskingProfiler::init(std::uint16_t corenum)
 {
     relTime = std::chrono::high_resolution_clock::now();
@@ -46,15 +73,6 @@ void TaskingProfiler::init(std::uint16_t corenum)
     corenum++;
     this->total_cores = corenum;
     uint16_t cpu_numa_node = 0;
-
-    {
-        std::cout << "Testing" << std::endl;
-        // enqueue prefetch task
-        auto *prefetch = mx::tasking::runtime::new_task<PrefetchTask>(corenum);
-        prefetch->annotate(corenum);
-
-        mx::tasking::runtime::spawn(*prefetch);
-    }
 
     //create an array of pointers to task_info structs
     task_data = new task_info*[total_cores];

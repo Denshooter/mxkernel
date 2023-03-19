@@ -1,5 +1,6 @@
 #include <iostream>
 #include <mx/tasking/runtime.h>
+#include <mx/tasking/profiling/tasking_profiler.h>
 
 static const uint64_t CORES = 16;
 static const uint64_t NUM = 10;
@@ -81,6 +82,8 @@ int main()
 
         // Create a runtime for the given cores.
         mx::tasking::runtime_guard _{cores};
+
+        TaskingProfiler::getInstance().prefetch();
 
         for(uint16_t i = 0; i < CORES; i++)
         {

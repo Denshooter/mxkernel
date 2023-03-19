@@ -7,6 +7,8 @@
 #include <mx/util/core_set.h>
 #include <tuple>
 
+#include <mx/tasking/profiling/tasking_profiler.h>
+
 using namespace application::blinktree_benchmark;
 
 /**
@@ -40,6 +42,8 @@ int main(int count_arguments, char **arguments)
     }
 
     mx::util::core_set cores{};
+    
+    TaskingProfiler::getInstance().prefetch();
 
     while ((cores = benchmark->core_set()))
     {

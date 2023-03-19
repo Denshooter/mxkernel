@@ -93,4 +93,10 @@ public:
      * @param end 
      */
     void printTP(std::uint64_t start, std::uint64_t end);
+
+    void prefetch();
+
+    task_info** getTaskData() { return task_data; }
+    queue_info** getQueueData() { return queue_data; }
+    std::chrono::time_point<std::chrono::high_resolution_clock> getTinit() { return tinit; }
 };
